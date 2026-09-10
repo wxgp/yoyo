@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>条码播放器</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#0f172a;color:#f1f5f9;display:flex;flex-direction:column;}
+.overlay{position:fixed;inset:0;background:#0f172a;display:flex;align-items:center;justify-content:center;z-index:999;padding:24px;}
+.overlay-card{background:#1e293b;border-radius:16px;padding:28px 22px;width:100%;max-width:340px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.overlay-icon{width:56px;height:56px;margin:0 auto 14px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.overlay-icon svg{width:26px;height:26px;}
+.overlay-title{font-size:18px;font-weight:700;margin-bottom:4px;}
+.overlay-sub{font-size:13px;color:#64748b;margin-bottom:18px;line-height:1.5;}
+.overlay-input{width:100%;padding:13px;border:1px solid #334155;border-radius:10px;font-size:15px;background:#0f172a;color:#f1f5f9;text-align:center;letter-spacing:3px;margin-bottom:10px;outline:none;font-family:"Consolas",monospace;}
+.overlay-input:focus{border-color:#3b82f6;}
+.overlay-input.error{border-color:#ef4444;}
+.overlay-btn{width:100%;padding:13px;background:#3b82f6;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;}
+.overlay-btn:active{background:#2563eb;}
+.overlay-btn.secondary{background:#334155;}
+.overlay-err{color:#ef4444;font-size:12px;margin-top:8px;height:16px;}
+.overlay-hint{margin-top:14px;font-size:11px;color:#475569;line-height:1.5;}
+.overlay-info{background:#0f172a;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#94a3b8;text-align:left;line-height:1.6;}
+.overlay-info strong{color:#f1f5f9;}
+.price-tag{display:inline-block;background:#1e3a5f;color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:6px;}
+.app{flex:1;display:flex;flex-direction:column;min-height:0;}
+.topbar{height:48px;display:flex;align-items:center;padding:0 16px;gap:10px;background:#1e293b;flex-shrink:0;}
+.topbar h1{font-size:15px;font-weight:600;flex:1;}
+.topbar .count{font-size:12px;color:#64748b;background:#0f172a;padding:4px 10px;border-radius:12px;}
+.icon-btn{width:36px;height:36px;border:none;background:transparent;color:#94a3b8;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px;}
+.icon-btn:active{background:#334155;}
+.icon-btn svg{width:20px;height:20px;}
+.display{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;min-height:0;position:relative;}
+.barcode-wrap{background:#fff;border-radius:12px;padding:22px 18px 16px;display:flex;flex-direction:column;align-items:center;max-width:100%;box-shadow:0 8px 32px rgba(0,0,0,.3);}
+.barcode-wrap canvas{display:block;max-width:100%;height:auto;}
+.barcode-label{margin-top:10px;font-size:17px;font-weight:600;color:#0f172a;letter-spacing:1px;font-family:"Consolas","Courier New",monospace;text-align:center;word-break:break-all;max-width:100%;}
+.barcode-idx{font-size:12px;color:#94a3b8;margin-bottom:8px;}
+.empty{text-align:center;color:#475569;}
+.empty svg{width:56px;height:56px;margin-bottom:12px;opacity:.4;}
+.empty p{font-size:14px;}
+.empty .sub{font-size:12px;color:#334155;margin-top:4px;}
+.controls{background:#1e293b;padding:12px 16px calc(12px + env(safe-area-inset-bottom));flex-shrink:0;}
+.progress-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.progress-bar{flex:1;height:4px;background:#334155;border-radius:2px;cursor:pointer;position:relative;}
+.progress-fill{height:100%;background:#3b82f6;border-radius:2px;width:0%;}
+.pos-text{font-size:12px;color:#94a3b8;min-width:60px;text-align:right;font-variant-numeric:tabular-nums;}
+.btn-row{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:10px;}
+.ctrl-btn{width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#334155;color:#e2e8f0;}
+.ctrl-btn:active{background:#475569;}
+.ctrl-btn svg{width:22px;height:22px;}
+.ctrl-btn.play{width:60px;height:60px;background:#3b82f6;color:#fff;}
+.ctrl-btn.play:active{background:#2563eb;}
+.ctrl-btn.play svg{width:26px;height:26px;}
+.speed-row{display:flex;align-items:center;gap:10px;}
+.speed-label{font-size:12px;color:#94a3b8;white-space:nowrap;}
+.speed-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;background:#334155;border-radius:2px;outline:none;}
+.speed-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:#3b82f6;border-radius:50%;cursor:pointer;border:2px solid #fff;}
+.speed-slider::-moz-range-thumb{width:18px;height:18px;background:#3b82f6;border-radius:50%;cursor:pointer;border:2px solid #fff;}
+.speed-val{font-size:12px;color:#3b82f6;font-weight:600;min-width:48px;text-align:right;}
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:none;align-items:flex-end;}
+.modal-mask.show{display:flex;}
+.modal{background:#1e293b;width:100%;border-radius:16px 16px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));max-height:80vh;display:flex;flex-direction:column;animation:slideUp .25s ease;}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.modal-head h3{font-size:16px;font-weight:600;}
+.modal-close{width:32px;height:32px;border:none;background:transparent;color:#94a3b8;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;}
+.modal textarea{width:100%;flex:1;min-height:160px;padding:12px;border:1px solid #334155;border-radius:10px;font-size:14px;background:#0f172a;color:#e2e8f0;font-family:"Consolas","Courier New",monospace;line-height:1.6;resize:none;outline:none;margin-bottom:12px;}
+.modal textarea:focus{border-color:#3b82f6;}
+.import-btn{width:100%;padding:14px;background:#3b82f6;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;}
+.import-btn:active{background:#2563eb;}
+.modal-hint{font-size:11px;color:#64748b;margin-top:8px;text-align:center;}
+@media(min-width:768px){
+  body{align-items:center;}
+  .app{width:100%;max-width:480px;height:100%;max-height:900px;box-shadow:0 0 60px rgba(0,0,0,.5);}
+}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="activateScreen">
+  <div class="overlay-card">
+    <div class="overlay-icon" style="background:#1e3a5f;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    </div>
+    <div class="overlay-title">软件激活</div>
+    <div class="overlay-sub">请输入您的激活码<br>买断 <span class="price-tag">¥50</span> 包年 <span class="price-tag">¥20/年</span></div>
+    <input type="text" class="overlay-input" id="actKeyInput" placeholder="XXXX-XXXX-XXXX" autocomplete="off" style="text-transform:uppercase;">
+    <button class="overlay-btn" id="actBtn">激活</button>
+    <div class="overlay-err" id="actErr"></div>
+    <div class="overlay-hint">激活后可设置自己的登录密码<br>包年用户到期后需续费激活</div>
+  </div>
+</div>
+
+<div class="overlay" id="setPwdScreen" style="display:none;">
+  <div class="overlay-card">
+    <div class="overlay-icon" style="background:#14532d;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div class="overlay-title">设置登录密码</div>
+    <div class="overlay-sub">激活成功！请设置您的专属密码<br>之后每次打开需输入此密码</div>
+    <input type="password" class="overlay-input" id="newPwdInput" placeholder="设置密码（至少4位）" autocomplete="off">
+    <input type="password" class="overlay-input" id="confirmPwdInput" placeholder="再次输入密码" autocomplete="off">
+    <button class="overlay-btn" id="setPwdBtn">确认设置</button>
+    <div class="overlay-err" id="setPwdErr"></div>
+  </div>
+</div>
+
+<div class="overlay" id="loginScreen" style="display:none;">
+  <div class="overlay-card">
+    <div class="overlay-icon" style="background:#1e3a5f;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div class="overlay-title">请输入密码</div>
+    <div class="overlay-sub" id="loginSub">条码播放器</div>
+    <input type="password" class="overlay-input" id="loginPwdInput" placeholder="请输入密码" autocomplete="off">
+    <button class="overlay-btn" id="loginBtn">进入</button>
+    <div class="overlay-err" id="loginErr"></div>
+  </div>
+</div>
+
+<div class="overlay" id="expireScreen" style="display:none;">
+  <div class="overlay-card">
+    <div class="overlay-icon" style="background:#7c2d12;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    </div>
+    <div class="overlay-title">授权已到期</div>
+    <div class="overlay-sub" id="expireText">您的包年授权已到期<br>请续费后继续使用</div>
+    <div class="overlay-info" id="expireInfo"></div>
+    <input type="text" class="overlay-input" id="renewKeyInput" placeholder="输入新激活码续费" autocomplete="off" style="text-transform:uppercase;">
+    <button class="overlay-btn" id="renewBtn">续费激活</button>
+    <div class="overlay-err" id="renewErr"></div>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none;">
+  <div class="topbar">
+    <h1>条码播放器</h1>
+    <span class="count" id="countBadge">0 条</span>
+    <button class="icon-btn" id="importBtn" title="导入条码">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
+  <div class="display" id="display">
+    <div class="empty" id="emptyState">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14"/></svg>
+      <p>尚未导入条码</p>
+      <p class="sub">点击右上角 + 导入</p>
+    </div>
+    <div class="barcode-wrap" id="barcodeWrap" style="display:none;">
+      <div class="barcode-idx" id="barcodeIdx">第 1 条</div>
+      <canvas id="barcodeCanvas"></canvas>
+      <div class="barcode-label" id="barcodeLabel">--</div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="progress-row">
+      <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="pos-text" id="posText">0/0</span>
+    </div>
+    <div class="btn-row">
+      <button class="ctrl-btn" id="prevBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+      <button class="ctrl-btn play" id="playBtn">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="pauseIcon" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>
+      </button>
+      <button class="ctrl-btn" id="nextBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+    </div>
+    <div class="speed-row">
+      <span class="speed-label">速度</span>
+      <input type="range" class="speed-slider" id="speedSlider" min="0.3" max="8" step="0.1" value="1">
+      <span class="speed-val" id="speedVal">1.0秒</span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <div class="modal-head"><h3>导入条码</h3><button class="modal-close" id="modalClose">&times;</button></div>
+    <textarea id="importText" placeholder="每行一个条码内容&#10;例如：&#10;12345678901&#10;BC-001&#10;ITEM-A2024"></textarea>
+    <button class="import-btn" id="doImportBtn">导入并播放</button>
+    <div class="modal-hint">支持数字、字母及常见符号，自动使用 Code 128 编码</div>
+  </div>
+</div>
+
+<script>
+var SECRET_KEY = "BarcodePlayer_2024_SecretKey";
+var B32 = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
+function b32enc(n){if(n===0)return B32[0];var s="";while(n>0){s=B32[n%32]+s;n=Math.floor(n/32);}return s;}
+function b32dec(s){var n=0;for(var i=0;i<s.length;i++){var idx=B32.indexOf(s[i]);if(idx<0)return -1;n=n*32+idx;}return n;}
+function fnv1a(str){var h=0x811c9dc5;for(var i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193);}return h>>>0;}
+function sign(data){var h=fnv1a(SECRET_KEY+data);var s="";for(var i=0;i<4;i++){s+=B32[h%32];h=Math.floor(h/32);}return s;}
+function verifyKey(key){
+  key=key.toUpperCase().replace(/[^A-Z0-9]/g,"");
+  if(key.length<6)return {ok:false,msg:"激活码格式不正确"};
+  var type=key[0],data=key.substring(0,key.length-4),sig=key.substring(key.length-4);
+  if(sign(data)!==sig)return {ok:false,msg:"激活码无效或已被篡改"};
+  if(type==="B")return {ok:true,type:"buyout",expire:null};
+  if(type==="Y"){var exp=b32dec(data.substring(1));if(exp<0)return {ok:false,msg:"激活码无效"};return {ok:true,type:"yearly",expire:exp*1000};}
+  return {ok:false,msg:"激活码类型不正确"};
+}
+function pwdHash(p){return fnv1a(SECRET_KEY+"_pwd_"+p).toString(36);}
+
+(function(){
+  var P=["11011001100","11001101100","11001100110","10010011000","10010001100","10001001100","10011001000","10011000100","10001100100","11001001000","11001000100","11000100100","10110011100","10011011100","10011001110","10111001100","10011101100","10011100110","11001110010","11010001110","11001001110","11011100100","11001110100","11101101110","11101001100","11100101100","11100100110","11101100100","11100110100","11100110010","11011011000","11011000110","11000110110","10100011000","10001011000","10001000110","10110001000","10001101000","10001100010","11010001000","11000101000","11000100010","10110111000","10110001110","10001101110","10111011000","10111000110","10001110110","11101110110","11010001110","11000101110","11011101000","11011100010","11011101110","11101011000","11101000110","11100010110","11101101000","11101100010","11100011010","11101111010","11001000010","11110001010","10100110000","10100001100","10010110000","10010000110","10000101100","10000100110","10110010000","10110000100","10011010000","10011000010","10000110100","10000110010","11000010010","11001010000","11110111010","11000010100","10001111010","10100111100","10010111100","10010011110","10111100100","10011110100","10011110010","11110100100","11110010100","11110010010","11011011110","11011110110","11110110110","10101111000","10100011110","10001011110","10111101000","10111100010","11110101000","11110100010","10111011110","10111101110","11101011110","11110101110","11010000100","11010010000","11010011100","11000111010"];
+  var SE="11",SB=104,SC=105,CB=100,CC=99,ST=106;
+  function enc(t){
+    if(!t||!t.length)return null;
+    var c=[];
+    if(/^\d+$/.test(t)){
+      c.push(SC);var i=0;
+      if(t.length%2===1){c.push(CB);c.push(t.charCodeAt(0)-32);c.push(CC);i=1;}
+      for(;i<t.length;i+=2)c.push(parseInt(t.substr(i,2),10));
+    }else{
+      c.push(SB);
+      for(var j=0;j<t.length;j++){var ch=t.charCodeAt(j);c.push((ch<32||ch>127)?0:ch-32);}
+    }
+    var s=c[0];for(var k=1;k<c.length;k++)s+=c[k]*k;
+    c.push(s%103);c.push(ST);return c;
+  }
+  window.drawBarcode=function(canvas,text,opts){
+    opts=opts||{};var mw=opts.moduleWidth||2,h=opts.height||100,mg=opts.margin||8;
+    var codes=enc(text);if(!codes)return false;
+    var bits="";for(var i=0;i<codes.length;i++){bits+=P[codes[i]];if(codes[i]===ST)bits+=SE;}
+    canvas.width=bits.length*mw+mg*2;canvas.height=h+mg*2;
+    var ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle="#000";var x=mg;
+    for(var b=0;b<bits.length;b++){if(bits[b]==="1")ctx.fillRect(x,mg,mw,h);x+=mw;}
+    return true;
+  };
+})();
+
+(function(){
+  var LS=localStorage;
+  var $=function(id){return document.getElementById(id);};
+  var actScreen=$("activateScreen"),setPwdScreen=$("setPwdScreen"),loginScreen=$("loginScreen"),expireScreen=$("expireScreen"),app=$("app");
+  function show(el){[actScreen,setPwdScreen,loginScreen,expireScreen,app].forEach(function(e){e.style.display="none";});el.style.display="flex";}
+  function getAuth(){return{activated:LS.getItem("bp_act")==="1",type:LS.getItem("bp_type"),expire:LS.getItem("bp_expire")?parseInt(LS.getItem("bp_expire")):null,password:LS.getItem("bp_pwd")};}
+  function saveAuth(a){LS.setItem("bp_act","1");LS.setItem("bp_type",a.type);if(a.expire)LS.setItem("bp_expire",a.expire.toString());else LS.removeItem("bp_expire");}
+  function checkAndEnter(){
+    var a=getAuth();
+    if(!a.activated){show(actScreen);return;}
+    if(a.type==="yearly"&&a.expire&&Date.now()>a.expire){
+      var d=new Date(a.expire);
+      $("expireInfo").innerHTML="授权类型：<strong>包年</strong><br>到期时间：<strong>"+d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()+"</strong><br>续费后可继续使用，已导入的条码数据保留";
+      show(expireScreen);return;
+    }
+    if(!a.password){show(setPwdScreen);return;}
+    show(loginScreen);
+  }
+  $("actBtn").addEventListener("click",function(){
+    var key=$("actKeyInput").value.trim();
+    if(!key){$("actErr").textContent="请输入激活码";return;}
+    var r=verifyKey(key);
+    if(!r.ok){$("actErr").textContent=r.msg;$("actKeyInput").classList.add("error");return;}
+    saveAuth({type:r.type,expire:r.expire});
+    $("actErr").textContent="";$("actKeyInput").classList.remove("error");$("actKeyInput").value="";
+    show(setPwdScreen);$("newPwdInput").focus();
+  });
+  $("actKeyInput").addEventListener("keydown",function(e){if(e.key==="Enter")$("actBtn").click();});
+  $("actKeyInput").addEventListener("input",function(){this.classList.remove("error");$("actErr").textContent="";});
+  $("setPwdBtn").addEventListener("click",function(){
+    var p1=$("newPwdInput").value,p2=$("confirmPwdInput").value;
+    if(p1.length<4){$("setPwdErr").textContent="密码至少4位";return;}
+    if(p1!==p2){$("setPwdErr").textContent="两次输入不一致";return;}
+    LS.setItem("bp_pwd",pwdHash(p1));
+    $("newPwdInput").value="";$("confirmPwdInput").value="";$("setPwdErr").textContent="";
+    enterApp();
+  });
+  $("confirmPwdInput").addEventListener("keydown",function(e){if(e.key==="Enter")$("setPwdBtn").click();});
+  $("loginBtn").addEventListener("click",function(){
+    var a=getAuth();
+    if(pwdHash($("loginPwdInput").value)===a.password){
+      $("loginPwdInput").value="";$("loginErr").textContent="";
+      enterApp();
+    }else{$("loginErr").textContent="密码错误";$("loginPwdInput").classList.add("error");$("loginPwdInput").value="";$("loginPwdInput").focus();}
+  });
+  $("loginPwdInput").addEventListener("keydown",function(e){if(e.key==="Enter")$("loginBtn").click();});
+  $("loginPwdInput").addEventListener("input",function(){this.classList.remove("error");$("loginErr").textContent="";});
+  $("renewBtn").addEventListener("click",function(){
+    var key=$("renewKeyInput").value.trim();
+    if(!key){$("renewErr").textContent="请输入激活码";return;}
+    var r=verifyKey(key);
+    if(!r.ok){$("renewErr").textContent=r.msg;return;}
+    saveAuth({type:r.type,expire:r.expire});
+    $("renewErr").textContent="";$("renewKeyInput").value="";
+    checkAndEnter();
+  });
+  $("renewKeyInput").addEventListener("keydown",function(e){if(e.key==="Enter")$("renewBtn").click();});
+  function enterApp(){
+    show(app);
+    var a=getAuth();
+    var typeText=a.type==="buyout"?"买断授权":("包年授权"+(a.expire?"（至"+new Date(a.expire).getFullYear()+"-"+(new Date(a.expire).getMonth()+1)+"-"+new Date(a.expire).getDate()+"）":""));
+    $("loginSub").textContent=typeText;
+    if(typeof mainInit==="function")mainInit();
+  }
+  checkAndEnter();
+})();
+
+var mainInit=(function(){
+  var $=function(id){return document.getElementById(id);};
+  var state={barcodes:[],index:0,playing:false,timer:null,speed:1.0};
+  var inited=false;
+  return function(){
+    if(inited)return;inited=true;
+    var display=$("display"),emptyState=$("emptyState"),barcodeWrap=$("barcodeWrap"),barcodeCanvas=$("barcodeCanvas"),barcodeLabel=$("barcodeLabel"),barcodeIdx=$("barcodeIdx"),countBadge=$("countBadge"),posText=$("posText"),progressFill=$("progressFill"),progressBar=$("progressBar"),playBtn=$("playBtn"),playIcon=$("playIcon"),pauseIcon=$("pauseIcon"),prevBtn=$("prevBtn"),nextBtn=$("nextBtn"),speedSlider=$("speedSlider"),speedVal=$("speedVal"),importBtn=$("importBtn"),modalMask=$("modalMask"),modalClose=$("modalClose"),importText=$("importText"),doImportBtn=$("doImportBtn");
+    function render(){
+      if(state.barcodes.length===0){emptyState.style.display="";barcodeWrap.style.display="none";countBadge.textContent="0 条";posText.textContent="0/0";progressFill.style.width="0%";return;}
+      emptyState.style.display="none";barcodeWrap.style.display="";
+      var text=state.barcodes[state.index];
+      barcodeLabel.textContent=text;barcodeIdx.textContent="第 "+(state.index+1)+" / "+state.barcodes.length+" 条";
+      countBadge.textContent=state.barcodes.length+" 条";posText.textContent=(state.index+1)+"/"+state.barcodes.length;
+      progressFill.style.width=((state.index+1)/state.barcodes.length*100)+"%";
+      var maxW=Math.min(display.clientWidth-40,560);var len=text.length;var mw=len>30?1.5:(len>20?2:2.5);
+      if((len*11+35)*mw>maxW)mw=Math.max(1,maxW/(len*11+35));
+      window.drawBarcode(barcodeCanvas,text,{moduleWidth:mw,height:85,margin:10});
+    }
+    function startPlay(){if(state.barcodes.length===0)return;if(state.index>=state.barcodes.length-1)state.index=0;state.playing=true;playIcon.style.display="none";pauseIcon.style.display="";schedule();}
+    function stopPlay(){state.playing=false;playIcon.style.display="";pauseIcon.style.display="none";if(state.timer){clearTimeout(state.timer);state.timer=null;}}
+    function schedule(){if(state.timer)clearTimeout(state.timer);state.timer=setTimeout(function(){if(!state.playing)return;if(state.index<state.barcodes.length-1){state.index++;render();schedule();}else stopPlay();},state.speed*1000);}
+    playBtn.addEventListener("click",function(){state.playing?stopPlay():startPlay();});
+    prevBtn.addEventListener("click",function(){if(state.barcodes.length===0)return;stopPlay();if(state.index>0){state.index--;render();}});
+    nextBtn.addEventListener("click",function(){if(state.barcodes.length===0)return;stopPlay();if(state.index<state.barcodes.length-1){state.index++;render();}});
+    speedSlider.addEventListener("input",function(){state.speed=parseFloat(speedSlider.value);speedVal.textContent=state.speed.toFixed(1)+"秒";if(state.playing)schedule();});
+    progressBar.addEventListener("click",function(e){if(state.barcodes.length===0)return;var rect=progressBar.getBoundingClientRect();var idx=Math.floor((e.clientX-rect.left)/rect.width*state.barcodes.length);idx=Math.max(0,Math.min(state.barcodes.length-1,idx));stopPlay();state.index=idx;render();});
+    importBtn.addEventListener("click",function(){modalMask.classList.add("show");importText.focus();});
+    modalClose.addEventListener("click",function(){modalMask.classList.remove("show");});
+    modalMask.addEventListener("click",function(e){if(e.target===modalMask)modalMask.classList.remove("show");});
+    doImportBtn.addEventListener("click",function(){var lines=importText.value.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});if(lines.length===0){alert("请至少输入一行条码内容");return;}stopPlay();state.barcodes=lines;state.index=0;modalMask.classList.remove("show");render();});
+    document.addEventListener("keydown",function(e){if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")return;if(e.key==="ArrowLeft")prevBtn.click();else if(e.key==="ArrowRight")nextBtn.click();else if(e.key===" "){e.preventDefault();playBtn.click();}});
+    window.addEventListener("resize",function(){if(state.barcodes.length>0)render();});
+    render();
+  };
+})();
+</script>
+</body>
+</html>
