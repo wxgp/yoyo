@@ -21,7 +21,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .overlay-input.error{border-color:#ef4444;}
 .overlay-btn{width:100%;padding:13px;background:#3b82f6;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;}
 .overlay-btn:active{background:#2563eb;}
-.overlay-btn.secondary{background:#334155;}
 .overlay-err{color:#ef4444;font-size:12px;margin-top:8px;height:16px;}
 .overlay-hint{margin-top:14px;font-size:11px;color:#475569;line-height:1.5;}
 .overlay-info{background:#0f172a;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#94a3b8;text-align:left;line-height:1.6;}
@@ -80,7 +79,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 </style>
 </head>
 <body>
-
 <div class="overlay" id="activateScreen">
   <div class="overlay-card">
     <div class="overlay-icon" style="background:#1e3a5f;">
@@ -91,10 +89,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
     <input type="text" class="overlay-input" id="actKeyInput" placeholder="XXXX-XXXX-XXXX" autocomplete="off" style="text-transform:uppercase;">
     <button class="overlay-btn" id="actBtn">激活</button>
     <div class="overlay-err" id="actErr"></div>
-    <div class="overlay-hint">激活后可设置自己的登录密码<br>包年用户到期后需续费激活</div>
+    <div class="overlay-hint">激活后可设置自己的登录密码<br>包年用户到期后需续费激活<br><a href="javascript:void(0)" id="resetAct" style="color:#475569;text-decoration:underline;font-size:11px;">重置激活状态</a></div>
   </div>
 </div>
-
 <div class="overlay" id="setPwdScreen" style="display:none;">
   <div class="overlay-card">
     <div class="overlay-icon" style="background:#14532d;">
@@ -108,7 +105,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
     <div class="overlay-err" id="setPwdErr"></div>
   </div>
 </div>
-
 <div class="overlay" id="loginScreen" style="display:none;">
   <div class="overlay-card">
     <div class="overlay-icon" style="background:#1e3a5f;">
@@ -119,9 +115,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
     <input type="password" class="overlay-input" id="loginPwdInput" placeholder="请输入密码" autocomplete="off">
     <button class="overlay-btn" id="loginBtn">进入</button>
     <div class="overlay-err" id="loginErr"></div>
+    <div class="overlay-hint"><a href="javascript:void(0)" id="resetAct2" style="color:#475569;text-decoration:underline;font-size:11px;">忘记密码/重置激活</a></div>
   </div>
 </div>
-
 <div class="overlay" id="expireScreen" style="display:none;">
   <div class="overlay-card">
     <div class="overlay-icon" style="background:#7c2d12;">
@@ -135,7 +131,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
     <div class="overlay-err" id="renewErr"></div>
   </div>
 </div>
-
 <div class="app" id="app" style="display:none;">
   <div class="topbar">
     <h1>条码播放器</h1>
@@ -176,7 +171,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
     </div>
   </div>
 </div>
-
 <div class="modal-mask" id="modalMask">
   <div class="modal">
     <div class="modal-head"><h3>导入条码</h3><button class="modal-close" id="modalClose">&times;</button></div>
@@ -185,10 +179,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
     <div class="modal-hint">支持数字、字母及常见符号，自动使用 Code 128 编码</div>
   </div>
 </div>
-
 <script>
 var SECRET_KEY = "BarcodePlayer_2024_SecretKey";
-var B32 = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
+var B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 function b32enc(n){if(n===0)return B32[0];var s="";while(n>0){s=B32[n%32]+s;n=Math.floor(n/32);}return s;}
 function b32dec(s){var n=0;for(var i=0;i<s.length;i++){var idx=B32.indexOf(s[i]);if(idx<0)return -1;n=n*32+idx;}return n;}
 function fnv1a(str){var h=0x811c9dc5;for(var i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193);}return h>>>0;}
@@ -203,7 +196,6 @@ function verifyKey(key){
   return {ok:false,msg:"激活码类型不正确"};
 }
 function pwdHash(p){return fnv1a(SECRET_KEY+"_pwd_"+p).toString(36);}
-
 (function(){
   var P=["11011001100","11001101100","11001100110","10010011000","10010001100","10001001100","10011001000","10011000100","10001100100","11001001000","11001000100","11000100100","10110011100","10011011100","10011001110","10111001100","10011101100","10011100110","11001110010","11010001110","11001001110","11011100100","11001110100","11101101110","11101001100","11100101100","11100100110","11101100100","11100110100","11100110010","11011011000","11011000110","11000110110","10100011000","10001011000","10001000110","10110001000","10001101000","10001100010","11010001000","11000101000","11000100010","10110111000","10110001110","10001101110","10111011000","10111000110","10001110110","11101110110","11010001110","11000101110","11011101000","11011100010","11011101110","11101011000","11101000110","11100010110","11101101000","11101100010","11100011010","11101111010","11001000010","11110001010","10100110000","10100001100","10010110000","10010000110","10000101100","10000100110","10110010000","10110000100","10011010000","10011000010","10000110100","10000110010","11000010010","11001010000","11110111010","11000010100","10001111010","10100111100","10010111100","10010011110","10111100100","10011110100","10011110010","11110100100","11110010100","11110010010","11011011110","11011110110","11110110110","10101111000","10100011110","10001011110","10111101000","10111100010","11110101000","11110100010","10111011110","10111101110","11101011110","11110101110","11010000100","11010010000","11010011100","11000111010"];
   var SE="11",SB=104,SC=105,CB=100,CC=99,ST=106;
@@ -232,7 +224,6 @@ function pwdHash(p){return fnv1a(SECRET_KEY+"_pwd_"+p).toString(36);}
     return true;
   };
 })();
-
 (function(){
   var LS=localStorage;
   var $=function(id){return document.getElementById(id);};
@@ -274,8 +265,7 @@ function pwdHash(p){return fnv1a(SECRET_KEY+"_pwd_"+p).toString(36);}
   $("loginBtn").addEventListener("click",function(){
     var a=getAuth();
     if(pwdHash($("loginPwdInput").value)===a.password){
-      $("loginPwdInput").value="";$("loginErr").textContent="";
-      enterApp();
+      $("loginPwdInput").value="";$("loginErr").textContent="";enterApp();
     }else{$("loginErr").textContent="密码错误";$("loginPwdInput").classList.add("error");$("loginPwdInput").value="";$("loginPwdInput").focus();}
   });
   $("loginPwdInput").addEventListener("keydown",function(e){if(e.key==="Enter")$("loginBtn").click();});
@@ -286,8 +276,7 @@ function pwdHash(p){return fnv1a(SECRET_KEY+"_pwd_"+p).toString(36);}
     var r=verifyKey(key);
     if(!r.ok){$("renewErr").textContent=r.msg;return;}
     saveAuth({type:r.type,expire:r.expire});
-    $("renewErr").textContent="";$("renewKeyInput").value="";
-    checkAndEnter();
+    $("renewErr").textContent="";$("renewKeyInput").value="";checkAndEnter();
   });
   $("renewKeyInput").addEventListener("keydown",function(e){if(e.key==="Enter")$("renewBtn").click();});
   function enterApp(){
@@ -297,9 +286,20 @@ function pwdHash(p){return fnv1a(SECRET_KEY+"_pwd_"+p).toString(36);}
     $("loginSub").textContent=typeText;
     if(typeof mainInit==="function")mainInit();
   }
+  $("resetAct").addEventListener("click",function(){
+    if(confirm("确定要清除激活状态和密码吗？")){
+      LS.removeItem("bp_act");LS.removeItem("bp_type");LS.removeItem("bp_expire");LS.removeItem("bp_pwd");
+      location.reload();
+    }
+  });
+  if($("resetAct2"))$("resetAct2").addEventListener("click",function(){
+    if(confirm("确定要清除激活状态和密码吗？")){
+      LS.removeItem("bp_act");LS.removeItem("bp_type");LS.removeItem("bp_expire");LS.removeItem("bp_pwd");
+      location.reload();
+    }
+  });
   checkAndEnter();
 })();
-
 var mainInit=(function(){
   var $=function(id){return document.getElementById(id);};
   var state={barcodes:[],index:0,playing:false,timer:null,speed:1.0};
